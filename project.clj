@@ -3,5 +3,12 @@
   :url "https://github.com/Saltbox/domesday"
   :license {:name "Apache License"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
-  :dependencies [[org.clojure/clojure "1.5.1"]]
+  :dependencies [[org.clojure/clojure "1.5.1"]
+                 [com.taoensso/timbre "3.1.2"]
+                 [org.clojure/tools.cli "0.3.1"]
+                 [clj-time "0.7.0"]
+                 [http-kit "2.1.16"]
+                 [clojurewerkz/urly "1.0.0"]
+                 [org.clojure/data.json "0.2.4"]
+                 [org.clojure/core.async "0.1.298.0-2a82a1-alpha"]]
   :main domesday.core)
