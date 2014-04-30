@@ -10,6 +10,12 @@
 (timbre/refer-timbre)
 
 
+; TODO test me
+(defn same-agent? [x y]
+  (let [ifi-keys [:mbox :mbox_sha1sum :openid :account]]
+    (every? #(= (x %1) (y %1)) ifi-keys)))
+
+
 (defn fetch-statements
   ([endpoint-url auth]
      (fetch-statements (chan) endpoint-url auth))
@@ -24,12 +30,12 @@
                                        :headers {"X-Experience-API-Version" "1.0.0"}}))
                body (try (json/read-str body :key-fn keyword) (catch Exception e nil))]
            (when (and (= 200 status) body)
-             (onto-chan ch (:statements body) false)
+             (debug "Received" (count (:statements body)) "statements")
+             (onto-chan ch (:statements body) (nil? (:more body)))
+             (debug "Found more statements")
              (when (:more body)
-               (debug "Found more statements")
                (recur (str (resolve endpoint-url (:more body))))))))
       
-       (debug "Finished fetching statements")
-       (close! ch))
+       (debug "Finished fetching statements"))
 
      ch))

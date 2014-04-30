@@ -15,7 +15,13 @@ You will need https://github.com/technomancy/leiningen to build domesday.
 ## Usage
 
     $ cd target/
-    $ java -jar domesday-0.1.0-SNAPSHOT-standalone.jar -A [2014-04-30T11:38:16-0700] -Z [2014-04-30T12:38:16-0700] -e [https://url.to.my.lrs.example.com/TCAPI/statements] -u [basicusername] -p [basicpassword]
+    $ java -jar domesday-0.1.0-SNAPSHOT-standalone.jar -A [2014-04-30T11:38:16-0700] -Z [2014-04-30T12:38:16-0700] -e [https://url.to.my.lrs.example.com/TCAPI/statements] -u [basicusername] -p [basicpassword] first_group_filename.txt second_group_filename.txt
+
+
+Each filename passed on the command line will be treated as a new group to
+tabulate on. Domesday will use the first line of each file as the name of the
+group in the output. Domesday will use each subsequent line in each file as
+an agent definition.
 
 
 ## Options
