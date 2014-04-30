@@ -7,6 +7,7 @@
                  [com.taoensso/timbre "3.1.2"]
                  [org.clojure/tools.cli "0.3.1"]
                  [clj-time "0.7.0"]
+                 [joda-time "2.3"]
                  [http-kit "2.1.16"]
                  [clojurewerkz/urly "1.0.0"]
                  [org.clojure/data.json "0.2.4"]

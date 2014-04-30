@@ -10,10 +10,31 @@
 (timbre/refer-timbre)
 
 
+(def ifi-keys #{:mbox :mbox_sha1sum :openid :account})
+
 ; TODO test me
 (defn same-agent? [x y]
-  (let [ifi-keys [:mbox :mbox_sha1sum :openid :account]]
-    (every? #(= (x %1) (y %1)) ifi-keys)))
+  (every? #(= (x %1) (y %1)) ifi-keys))
+
+
+(defn completed-activity? [statement]
+  (-> statement
+    :result
+    :completion))
+
+
+(defn successful-activity? [statement]
+  (-> statement
+    :result
+    :success))
+
+
+; TODO test me
+(defn actor [statement]
+  (into {}
+    [(first (filter (fn [[k v]]
+                     (contains? ifi-keys k))
+                   (:actor statement)))]))
 
 
 (defn fetch-statements
