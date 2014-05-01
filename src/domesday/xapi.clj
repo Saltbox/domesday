@@ -17,6 +17,34 @@
   (every? #(= (x %1) (y %1)) ifi-keys))
 
 
+(defn get-score [statement]
+  (if-let [scaled (-> statement :result :score :scaled)]
+    scaled
+    (let [raw (-> statement :result :score :raw)
+          ; (or raw 0) because raw may be nil, but we need to
+          ; detect that after we determine mins, so that raw can
+          ; be set to mins.
+          mins (or (-> statement :result :score :min)
+                   (min 0 (or raw 0)))
+          maxs (or (-> statement :result :score :max)
+                   (max mins (or raw 0)))]
+      (if (nil? raw)
+        nil
+        (if (zero? maxs)
+          0
+          (/ (- raw mins) (- maxs mins)))))))
+
+
+(defn get-lang
+  ([lang-map]
+   (get-lang "en-US" lang-map))
+  ([lang lang-map]
+   (or
+     (get lang-map lang)
+     (get lang-map (first (keys lang-map))))))
+
+
+
 (defn completed-activity? [statement]
   (-> statement
     :result

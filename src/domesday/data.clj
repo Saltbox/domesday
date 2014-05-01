@@ -87,49 +87,140 @@
       processors)))
 
 
+; Here's a really simple processor, which counts the number of statements in
+; the group it processes.
 (defn count-agents
   ([]
      0)
   ([acc statement]
      (inc acc)))
 
-(defn- update-completions [activities statement]
-   (if (xapi/completed-activity? statement)
-     (update-in activities [(-> statement :object :id) (xapi/actor statement) :completions] #(if %1 (inc %1) 1))
-     activities))
 
-(defn- update-successes [activities statement]
-   (if (xapi/successful-activity? statement)
-     (update-in activities [(-> statement :object :id) (xapi/actor statement) :successes] #(if %1 (inc %1) 1))
-     activities))
+;(defn- update-completions [activities statement]
+;   (if (xapi/completed-activity? statement)
+;     (update-in activities [(-> statement :object :id) (xapi/actor statement) :completions] #(if %1 (inc %1) 1))
+;     activities))
+;
+;(defn- update-successes [activities statement]
+;   (if (xapi/successful-activity? statement)
+;     (update-in activities [(-> statement :object :id) (xapi/actor statement) :successes] #(if %1 (inc %1) 1))
+;     activities))
+;
+;
+;(defn- add-duration
+;  ([]
+;   0)
+;  ([milliseconds iso8601-duration]
+;   (+ milliseconds (.getMillis (.toStandardDuration (Period/parse iso8601-duration))))))
+;
+;
+;(defn- update-durations [activities statement]
+;  (if-let [duration (-> statement :result :duration)]
+;    (update-in activities [(-> statement :object :id) (xapi/actor statement) :total-duration] #(if-not (nil? %1) (add-duration %1 (-> statement :result :duration)) (add-duration)))
+;    activities))
+;
+;
+;(defn- save-score [activities statement]
+;  (if-let [score (-> statement :result :score)]
+;    (let [timestamp (:timestamp statement)]
+;      (update-in activities [(-> statement :object :id) (xapi/actor statement) :scores] #(conj (or % []) [score timestamp])))
+;    activities))
+;
+;
+;(defn completed-activities
+;  ([]
+;   {})
+;  ([activities statement]
+;   (-> activities
+;     (update-completions statement)
+;     (update-successes statement)
+;     (save-score statement)
+;     (update-durations statement))))
 
 
-(defn- add-duration
-  ([]
-   0)
-  ([milliseconds iso8601-duration]
-   (+ milliseconds (.getMillis (.toStandardDuration (Period/parse iso8601-duration))))))
+(defn- update-description [activities path statement]
+  (update-in activities (conj path :name)
+             (fn [existing-name]
+               (or existing-name
+                   (-> statement :object :definition :name xapi/get-lang)
+                   (-> statement :object :id)))))
+
+(defn- update-course [activities path statement]
+  (update-in activities (conj path :course)
+             (fn [course-name]
+               (or course-name
+                   (some-> statement :context :contextActivities :parent (get 0) :definition :name xapi/get-lang)))))
+
+(defn- update-attempts [activities path statement]
+  (update-in activities (conj path :attempts)
+             (fn [attempts]
+               (if attempts
+                 (inc attempts)
+                 1))))
+
+(defn- update-completions [activities path statement]
+  (update-in activities (conj path :completions)
+             (fn [completions]
+               (if (xapi/completed-activity? statement)
+                 (if completions
+                   (inc completions)
+                   1)
+                 (or completions 0)))))
+
+(defn- update-completion-date [activities path statement]
+  (update-in activities (conj path :completion-date)
+             (fn [completion-date]
+               (if (xapi/completed-activity? statement)
+                 (let [d1 (or completion-date (:timestamp statement))
+                       d2 (or (:timestamp statement) completion-date)]
+                   ; if d1 is more recent than d2
+                   ; dates are both ISO8601 format
+                   (if (> (compare d1 d2) 0)
+                     d1
+                     d2))
+                 completion-date))))
+
+(defn- update-highest-score [activities path statement]
+  (update-in activities (conj path :highest-score)
+             (fn [highest-score]
+               (let [score (xapi/get-score statement)]
+                 (if (nil? score)
+                   highest-score
+                   (max (or highest-score 0) score))))))
+
+(defn- update-lowest-score [activities path statement]
+  (update-in activities (conj path :lowest-score)
+             (fn [lowest-score]
+               (let [score (xapi/get-score statement)]
+                 (if (nil? score)
+                   lowest-score
+                   (min (or lowest-score 0) score))))))
 
 
-(defn- update-durations [activities statement]
-  (if-let [duration (-> statement :result :duration)]
-    (update-in activities [(-> statement :object :id) (xapi/actor statement) :total-duration] #(if-not (nil? %1) (add-duration %1 (-> statement :result :duration)) (add-duration)))
-    activities))
-
-
-(defn- save-score [activities statement]
-  (if-let [score (-> statement :result :score)]
-    (let [timestamp (:timestamp statement)]
-      (update-in activities [(-> statement :object :id) (xapi/actor statement) :scores] #(conj (or % []) [score timestamp])))
-    activities))
-
-
-(defn completed-activities
+(defn by-activity
   ([]
    {})
   ([activities statement]
-   (-> activities
-     (update-completions statement)
-     (update-successes statement)
-     (save-score statement)
-     (update-durations statement))))
+   (let [path [(-> statement :object :id)]]
+     (-> activities
+       (update-description path statement)
+       (update-course path statement)
+       (update-attempts path statement)
+       (update-completions path statement)
+       (update-highest-score path statement)
+       (update-lowest-score path statement)))))
+
+
+(defn by-activity-actor
+  ([]
+   {})
+  ([activities statement]
+   (let [path [(xapi/actor statement) (-> statement :object :id)]]
+     (-> activities
+       (update-description path statement)
+       (update-course path statement)
+       (update-attempts path statement)
+       (update-completions path statement)
+       (update-completion-date path statement)
+       (update-highest-score path statement)
+       (update-lowest-score path statement)))))

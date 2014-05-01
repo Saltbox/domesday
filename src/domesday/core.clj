@@ -12,11 +12,12 @@
 
 
 (def processors
-  {"Statement Count" data/count-agents
-   "Completed Activities" data/completed-activities})
+  {"Activities per Actor" data/by-activity-actor
+   "Activity Summary" data/by-activity})
 
 (def available-formatters
-  {"Completed Activities" formatters/completed-activities
+  {"Activity Summary" formatters/activity-summary
+   "Activities per Actor" formatters/activity-per-actor
    :default str})
 
 
