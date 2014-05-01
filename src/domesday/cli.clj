@@ -55,12 +55,13 @@
 
 
 (defn- get-groups [group-paths]
-  (into {}
+  (into {:all []}
         (map get-group group-paths)))
 
 
 (defn get-opts [args]
   (let [{:keys [options arguments errors summary]} (parse-opts args cli-options)]
+    ; TODO make error messages about these friendlier
     (assert (:endpoint options) "`--endpoint` must be specified") 
     (assert (:user options) "`--user` must be specified") 
     (assert (:password options) "`--password` must be specified") 
@@ -72,6 +73,7 @@
       (:help options) (exit 0 (usage summary))
       errors (exit 1 (error-msg errors)))
 
+    ; TODO make params parsing better
     (let [endpoint-url (-> options
                          :endpoint
                          url-like

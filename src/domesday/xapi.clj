@@ -4,7 +4,7 @@
             [taoensso.timbre :as timbre]
             [clojure.data.json :as json]
             [clojurewerkz.urly.core :refer [url-like resolve]]
-            [clojure.core.async :refer [go chan <! onto-chan close!]]))
+            [clojure.core.async :refer [go go-loop chan <! onto-chan close!]]))
 
 
 (timbre/refer-timbre)
@@ -42,8 +42,7 @@
      (fetch-statements (chan) endpoint-url auth))
   ([ch endpoint-url auth]
      (debug "Starting statement fetch from" (str endpoint-url))
-     (go
-       (loop [url endpoint-url]
+     (go-loop [url endpoint-url]
          (let [{status :status
                 body :body} (<! (http {:method :get
                                        :url url
@@ -57,6 +56,6 @@
              (when (:more body)
                (recur (str (resolve endpoint-url (:more body))))))))
       
-       (debug "Finished fetching statements"))
+       (debug "Finished fetching statements")
 
      ch))

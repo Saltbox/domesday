@@ -1,5 +1,5 @@
 (ns domesday.data
-  (:require [clojure.core.async :as async :refer [<! go chan sub pub]]
+  (:require [clojure.core.async :as async :refer [<! >! go chan sub pub go-loop]]
             [domesday.xapi :as xapi])
   (:import [org.joda.time Period]))
 
@@ -16,35 +16,60 @@
 
 
 (defn- by-group-name [groups statement]
-  (if (empty? groups)
-    :all
-    (let [actor (:actor statement)
-          [group-name _] (first (filter (fn [[group-name agents]]
-                           (some (partial xapi/same-agent? actor) agents))
-                                        groups))]
-      group-name)))
-
-
-(defn- process-group [group-pub-ch processor-fn group-name]
-  "Process an agent group, yielding the result in the returned channel."
-  (let [group-ch (chan)]
-    (sub group-pub-ch group-name group-ch)
-    (process-statements group-ch processor-fn)))
+  (let [actor (:actor statement)]
+    (conj (map first (filter (fn [[group-name agents]]
+                               (some (partial xapi/same-agent? actor) agents))
+                             groups)) :all)))
 
 
 (defn gather-agents [statement-ch]
   "Merge all statement actors into a single sequence of agents, yielding
    the sequence in the returned channel."
-  (go
-    (loop [agents {}]
-      (if-let [statement (<! statement-ch)]
-        (recur (update-in agents [(xapi/actor statement)]
-                          (fn [agent]
-                            (if (and (not (:name agent)) (:name (:actor statement)))
-                              (:actor statement)
-                              agent))))
-        agents))))
+  (go-loop [agents {}]
+    (if-let [statement (<! statement-ch)]
+      (recur (update-in agents [(xapi/actor statement)]
+                        (fn [agent]
+                          (if (and (not (:name agent)) (:name (:actor statement)))
+                            (:actor statement)
+                            agent))))
+      agents)))
 
+
+(defn dispatch-group-channels
+  "Create a new channel for each group, returning a map from group name to the
+  corresponding group channel. This function dispatches statements to all
+  matching group channels."
+  [statement-ch groups]
+  ; map group names to new channels
+  (let [group-chs (into {} (map #(vec [% (chan)]) (keys groups)))
+        group-mult-chs (into {} (map #(vec [% (async/mult (group-chs %))]) (keys groups)))]
+    ; Dispatch statements to all appropriate group channels while
+    ; statement channel is open.
+    (go-loop []
+      (if-let [statement (<! statement-ch)]
+        (do
+          ; call (by-group-name groups statement) which returns a sequence of
+          ; group names
+          ; doseq over return, >! return-val statement
+          (doseq [group-name (by-group-name groups statement)]
+            (>! (group-chs group-name) statement))
+          (recur))
+
+        ; No futher statements, close all the channels
+        (doseq [ch (vals group-chs)]
+          (async/close! ch))))
+    group-mult-chs))
+
+
+(defn- process-group [processor-fn [group-name ch]]
+  (let [per-process-group-ch (chan)]
+    (async/tap ch per-process-group-ch)
+    (go
+      [group-name (<! (process-statements per-process-group-ch processor-fn))])))
+
+
+(defn- async-map-map [f coll]
+  (async/into {} (async/merge (map f coll))))
 
 
 (defn tabulate [statement-ch groups processors]
@@ -52,18 +77,14 @@
   ; processors is a map from processor-name to processor function
   ; do things
   ; yield per-group output of processors in the returned channel
-  (let [group-pub-ch (pub statement-ch (partial by-group-name groups))
+  (let [group-chs (dispatch-group-channels statement-ch groups)
         groups (or (keys groups) [:all])]
-    (async/into {} (async/merge (map (fn [[processor-name processor-fn]]
-                      (go [processor-name
-                       (<! (async/into {}
-                             (async/merge (map (fn [group-name]
-                                                 (go
-                                                   [group-name
-                                                    (<! (process-group
-                                                          group-pub-ch processor-fn group-name))]))
-                                               groups))))]))
-                    processors)))))
+    (async-map-map
+      (fn [[processor-name processor-fn]]
+        (go
+          [processor-name
+           (<! (async-map-map (partial process-group processor-fn) group-chs))]))
+      processors)))
 
 
 (defn count-agents
@@ -105,7 +126,7 @@
 
 (defn completed-activities
   ([]
-     {})
+   {})
   ([activities statement]
    (-> activities
      (update-completions statement)
