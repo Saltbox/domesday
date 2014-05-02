@@ -80,7 +80,7 @@
 
 (defn activity-per-actor
   [results agents]
-  (dump-csv ["Actor Name" "Actor Id" "Course" "Activity Name" "Activity Id" "Attempts" "Completed" "Date Completed" "Attempts" "Highest Score"]
+  (dump-csv ["Actor Name" "Actor Id" "Course" "Activity Name" "Activity Id" "Completed" "Date Completed" "Attempts" "Highest Score"]
     (loop [rows []
            [result & more] (seq results)]
       (if result
