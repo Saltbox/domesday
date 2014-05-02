@@ -80,8 +80,8 @@
            (when (and (= 200 status) body)
              (debug "Received" (count (:statements body)) "statements")
              (onto-chan ch (:statements body) (nil? (:more body)))
-             (debug "Found more statements")
              (when (:more body)
+               (debug "Found more statements")
                (recur (str (resolve endpoint-url (:more body))))))))
       
        (debug "Finished fetching statements")
