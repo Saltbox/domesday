@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [resolve])
   (:require [domesday.utils :refer [http]]
             [taoensso.timbre :as timbre]
-            [clojure.data.json :as json]
+            [cheshire.core :refer :all]
             [clojurewerkz.urly.core :refer [url-like resolve]]
             [clojure.core.async :refer [go go-loop chan <! onto-chan close!]]))
 
@@ -76,7 +76,7 @@
                                        :url url
                                        :basic-auth auth
                                        :headers {"X-Experience-API-Version" "1.0.0"}}))
-               body (try (json/read-str body :key-fn keyword) (catch Exception e nil))]
+               body (try (parse-string body true) (catch Exception e nil))]
            (when (and (= 200 status) body)
              (debug "Received" (count (:statements body)) "statements")
              (onto-chan ch (:statements body) (nil? (:more body)))

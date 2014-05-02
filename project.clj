@@ -10,7 +10,7 @@
                  [joda-time "2.3"]
                  [http-kit "2.1.16"]
                  [clojurewerkz/urly "1.0.0"]
-                 [org.clojure/data.json "0.2.4"]
+                 [cheshire "5.3.1"]
                  [clojure-csv/clojure-csv "2.0.1"]
                  [org.clojure/core.async "0.1.298.0-2a82a1-alpha"]]
   :main domesday.core)

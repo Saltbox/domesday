@@ -21,27 +21,30 @@
    :default str})
 
 
-(defn -main
-  "I connect all the things and make them run."
-  [& args]
-  ;; work around dangerous default behaviour in Clojure
-  (alter-var-root #'*read-eval* (constantly false))
-  (debug "Starting")
-  (let [{:keys [options groups]} (get-opts args)
-        source-statements-ch (chan)
+(defn gather-results [options groups]
+  (let [source-statements-ch (chan)
         statements-ch (async/mult source-statements-ch)
         statement-tabulate-ch (chan)
         statement-agent-ch (chan)
         result-ch (data/tabulate statement-tabulate-ch groups processors)
         agents-ch (data/gather-agents statement-agent-ch)]
 
-    (debug "Generated statements URL" (:endpoint options))
     (async/tap statements-ch statement-tabulate-ch)
     (async/tap statements-ch statement-agent-ch)
     (xapi/fetch-statements source-statements-ch (:endpoint options) [(:user options) (:password options)])
+    [(<!! result-ch) (<!! agents-ch)]))
 
-    (let [results (<!! result-ch)
-          agents (<!! agents-ch)]
+(defn -main
+  "I connect all the things and make them run."
+  [& args]
+  ;; work around dangerous default behaviour in Clojure
+  (alter-var-root #'*read-eval* (constantly false))
+  (debug "Starting")
+  (let [{:keys [options groups]} (get-opts args)]
+    (debug "Generated statements URL" (:endpoint options))
+
+    (let [[results agents] (profile :info :Domesday
+                             (gather-results options groups))]
       (doseq [[formatter-name result] results]
         (let [formatter (get available-formatters formatter-name (:default available-formatters))]
           (doseq [[group-name group-result] result]
