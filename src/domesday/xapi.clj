@@ -3,7 +3,7 @@
   (:require [domesday.utils :refer [http]]
             [taoensso.timbre :as timbre]
             [cheshire.core :refer :all]
-            [clojurewerkz.urly.core :refer [url-like resolve]]
+            [clojurewerkz.urly.core :refer [resolve]]
             [clojure.core.async :refer [go go-loop chan <! onto-chan close!]]))
 
 
