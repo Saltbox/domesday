@@ -167,6 +167,15 @@
                    1)
                  (or completions 0)))))
 
+(defn- update-successes [activities path statement]
+  (update-in activities (conj path :successes)
+             (fn [successes]
+               (if (xapi/successful-activity? statement)
+                 (if successes
+                   (inc successes)
+                   1)
+                 (or successes 0)))))
+
 (defn- update-completion-date [activities path statement]
   (update-in activities (conj path :completion-date)
              (fn [completion-date]
@@ -179,6 +188,45 @@
                      d1
                      d2))
                  completion-date))))
+
+(defn- update-first-completion-date [activities path statement]
+  (update-in activities (conj path :first-completion-date)
+             (fn [completion-date]
+               (if (xapi/completed-activity? statement)
+                 (let [d1 (or completion-date (:timestamp statement))
+                       d2 (or (:timestamp statement) completion-date)]
+                   ; if d2 is more recent than d1
+                   ; dates are both ISO8601 format
+                   (if (< (compare d1 d2) 0)
+                     d1
+                     d2))
+                 completion-date))))
+
+(defn- update-success-date [activities path statement]
+  (update-in activities (conj path :success-date)
+             (fn [success-date]
+               (if (xapi/successful-activity? statement)
+                 (let [d1 (or success-date (:timestamp statement))
+                       d2 (or (:timestamp statement) success-date)]
+                   ; if d1 is more recent than d2
+                   ; dates are both ISO8601 format
+                   (if (> (compare d1 d2) 0)
+                     d1
+                     d2))
+                 success-date))))
+
+(defn- update-first-success-date [activities path statement]
+  (update-in activities (conj path :first-success-date)
+             (fn [success-date]
+               (if (xapi/successful-activity? statement)
+                 (let [d1 (or success-date (:timestamp statement))
+                       d2 (or (:timestamp statement) success-date)]
+                   ; if d2 is more recent than d1
+                   ; dates are both ISO8601 format
+                   (if (< (compare d1 d2) 0)
+                     d1
+                     d2))
+                 success-date))))
 
 (defn- update-highest-score [activities path statement]
   (update-in activities (conj path :highest-score)
@@ -207,6 +255,7 @@
        (update-course path statement)
        (update-attempts path statement)
        (update-completions path statement)
+       (update-successes path statement)
        (update-highest-score path statement)
        (update-lowest-score path statement)))))
 
@@ -221,6 +270,10 @@
        (update-course path statement)
        (update-attempts path statement)
        (update-completions path statement)
+       (update-first-completion-date path statement)
        (update-completion-date path statement)
+       (update-successes path statement)
+       (update-first-success-date path statement)
+       (update-success-date path statement)
        (update-highest-score path statement)
        (update-lowest-score path statement)))))
