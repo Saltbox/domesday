@@ -43,8 +43,7 @@
   (let [{:keys [options groups]} (get-opts args)]
     (debug "Generated statements URL" (:endpoint options))
 
-    (let [[results agents] (profile :info :Domesday
-                             (gather-results options groups))]
+    (let [[results agents] (gather-results options groups)]
       (doseq [[formatter-name result] results]
         (let [formatter (get available-formatters formatter-name (:default available-formatters))]
           (doseq [[group-name group-result] result]

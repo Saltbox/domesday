@@ -70,19 +70,33 @@
      (fetch-statements (chan) endpoint-url auth))
   ([ch endpoint-url auth]
      (debug "Starting statement fetch from" (str endpoint-url))
-     (go-loop [url endpoint-url]
+     (go-loop [url endpoint-url
+               total 0]
+         (debug "Sending statement request")
          (let [{status :status
-                body :body} (<! (http {:method :get
+                body :body
+                error-message :error} (<! (http {:method :get
                                        :url url
                                        :basic-auth auth
                                        :headers {"X-Experience-API-Version" "1.0.0"}}))
                body (try (parse-string body true) (catch Exception e nil))]
-           (when (and (= 200 status) body)
-             (debug "Received" (count (:statements body)) "statements")
-             (onto-chan ch (:statements body) (nil? (:more body)))
-             (when (:more body)
-               (debug "Found more statements")
-               (recur (str (resolve endpoint-url (:more body))))))))
+           (debug "Got statement response")
+           (if (and (= 200 status) body)
+             (do
+               (debug
+                 "Received" (count (:statements body)) "statements."
+                 total "total fetched so far.")
+               (onto-chan ch (:statements body) (nil? (:more body)))
+               (when-let [more (:more body)]
+                 (let [next-url (str (resolve endpoint-url more))]
+                   (debug "Found more statements at" next-url)
+                   (recur next-url (+ total (count (:statements body)))))))
+             
+             (do
+               (error
+                 "Got bad response from server: " status "status. Retrying.")
+               (debug "Error response:" error-message)
+               (recur endpoint-url total)))))
       
        (debug "Finished fetching statements")
 
