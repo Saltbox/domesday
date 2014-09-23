@@ -1,10 +1,14 @@
 (ns domesday.xapi
   (:refer-clojure :exclude [resolve])
   (:require [domesday.utils :refer [http]]
+            [domesday.protocols :refer [StatementsSource]]
+            [clojurewerkz.urly.core :refer [url-like]]
             [taoensso.timbre :as timbre]
-            [cheshire.core :refer :all]
+            [cheshire.core :refer [parse-string]]
+            [clojure.string :refer [split join]]
             [clojurewerkz.urly.core :refer [resolve]]
-            [clojure.core.async :refer [go go-loop chan <! onto-chan close!]]))
+            [clojure.core.async :refer [go go-loop chan <! onto-chan close!]])
+  (:import [domesday.protocols xAPIEndpoint]))
 
 
 (timbre/refer-timbre)
@@ -65,39 +69,57 @@
                    (:actor statement)))]))
 
 
-(defn fetch-statements
-  ([endpoint-url auth]
-     (fetch-statements (chan) endpoint-url auth))
-  ([ch endpoint-url auth]
-     (debug "Starting statement fetch from" (str endpoint-url))
-     (go-loop [url endpoint-url
-               total 0]
-         (debug "Sending statement request")
-         (let [{status :status
-                body :body
-                error-message :error} (<! (http {:method :get
-                                       :url url
-                                       :basic-auth auth
-                                       :headers {"X-Experience-API-Version" "1.0.0"}}))
-               body (try (parse-string body true) (catch Exception e nil))]
-           (debug "Got statement response")
-           (if (and (= 200 status) body)
-             (do
-               (debug
-                 "Received" (count (:statements body)) "statements."
-                 total "total fetched so far.")
-               (onto-chan ch (:statements body) (nil? (:more body)))
-               (when-let [more (:more body)]
-                 (let [next-url (str (resolve endpoint-url more))]
-                   (debug "Found more statements at" next-url)
-                   (recur next-url (+ total (count (:statements body)))))))
-             
-             (do
-               (error
-                 "Got bad response from server: " status "status. Retrying.")
-               (debug "Error response:" error-message)
-               (recur endpoint-url total)))))
-      
-       (debug "Finished fetching statements")
 
-     ch))
+
+(defn fetch-statements
+  [ch endpoint-url auth]
+  (debug "Starting statement fetch from" (str endpoint-url))
+  (go-loop [url endpoint-url
+            total 0]
+      (debug "Sending statement request")
+      (let [{status :status
+             body :body
+             error-message :error} (<! (http {:method :get
+                                    :url url
+                                    :basic-auth auth
+                                    :headers {"X-Experience-API-Version" "1.0.0"}}))
+            body (try (parse-string body true) (catch Exception e nil))]
+        (debug "Got statement response")
+        (if (and (= 200 status) body)
+          (do
+            (debug
+              "Received" (count (:statements body)) "statements."
+              total "total fetched so far.")
+            (onto-chan ch (:statements body) (nil? (:more body)))
+            (when-let [more (:more body)]
+              (let [next-url (str (resolve endpoint-url more))]
+                (debug "Found more statements at" next-url)
+                (recur next-url (+ total (count (:statements body)))))))
+          
+          (do
+            (error
+              "Got bad response from server: " status "status. Retrying.")
+            (debug "Error response:" error-message)
+            (recur endpoint-url total)))))
+   
+    (debug "Finished fetching statements")
+
+  ch)
+
+
+(extend xAPIEndpoint
+  StatementsSource
+  {:fetch (fn [this ch since until]
+            (let [url (-> this
+                          :url
+                          url-like
+                          (.mutateQuery
+                            (join "&"
+                                  (-> (split (:query this) #"&")
+                                    (conj (str "since=" since))
+                                    (conj (str "until=" until)))))
+                          str)]
+              (fetch-statements
+                ch
+                url
+                [(:user this) (:password this)])))})
