@@ -16,10 +16,13 @@
 
 
 (defn- by-group-name [groups statement]
-  (let [actor (:actor statement)]
-    (conj (map first (filter (fn [[group-name agents]]
-                               (some (partial xapi/same-agent? actor) agents))
-                             groups)) :all)))
+  (let [actor (:actor statement)
+        group-names (map first (filter (fn [[group-name agents]]
+	                                 (some (partial xapi/same-agent? actor) agents))
+                                       groups))]
+    (if (empty? group-names)
+      [:catch-all :all]
+      (conj group-names :all))))
 
 
 (defn gather-agents [statement-ch]
