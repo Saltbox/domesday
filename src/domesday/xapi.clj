@@ -73,7 +73,7 @@
 
 (defn fetch-statements
   [ch endpoint-url auth]
-  (debug "Starting statement fetch from" (str endpoint-url))
+  (debug "Starting statement fetch from" endpoint-url)
   (go-loop [url endpoint-url
             total 0]
       (debug "Sending statement request")
@@ -89,7 +89,7 @@
           (do
             (debug
               "Received" (count (:statements body)) "statements."
-              total "total fetched so far.")
+              (+ (count (:statements body)) total) "total fetched so far.")
             (onto-chan ch (:statements body) (nil? (:more body)))
             (when-let [more (:more body)]
               (let [next-url (str (resolve endpoint-url more))]
@@ -122,4 +122,4 @@
               (fetch-statements
                 ch
                 url
-                [(:user this) (:password this)])))})
+                [(:username this) (:password this)])))})
