@@ -3,7 +3,6 @@
 
 
 (defn- dump-csv [headers rows]
-  (println rows)
   (write-csv (vec (cons headers rows))))
 
 
