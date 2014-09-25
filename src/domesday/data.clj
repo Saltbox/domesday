@@ -1,7 +1,10 @@
 (ns domesday.data
-  (:require [clojure.core.async :as async :refer [<! >! go chan sub pub go-loop]]
+  (:require [taoensso.timbre :as timbre]
+            [clojure.core.async :as async :refer [<! >! go chan sub pub go-loop]]
             [domesday.xapi :as xapi])
   (:import [org.joda.time Period]))
+
+(timbre/refer-timbre)
 
 
 (defn- process-statements [statements-channel processor-fn]
@@ -12,14 +15,18 @@
   ;   Experience API statement.
   ;  If zero arguments, the processor function should return an initial
   ;   data structor that it will accept as its first argument.
+  (debug "in process-statements for" processor-fn)
   (async/reduce processor-fn (processor-fn) statements-channel))
 
 
 (defn- by-group-name [groups statement]
-  (let [actor (:actor statement)]
-    (conj (map first (filter (fn [[group-name agents]]
-                               (some (partial xapi/same-agent? actor) agents))
-                             groups)) :all)))
+  (let [actor (:actor statement)
+        group-names (map first (filter (fn [[group-name agents]]
+	                                 (some (partial xapi/same-agent? actor) agents))
+                                       groups))]
+    (if (empty? group-names)
+      [:catch-all :all]
+      (conj group-names :all))))
 
 
 (defn gather-agents [statement-ch]
@@ -43,6 +50,7 @@
   ; map group names to new channels
   (let [group-chs (into {} (map #(vec [% (chan)]) (keys groups)))
         group-mult-chs (into {} (map #(vec [% (async/mult (group-chs %))]) (keys groups)))]
+    (debug "Constructed" (count group-chs) "channels for groups")
     ; Dispatch statements to all appropriate group channels while
     ; statement channel is open.
     (go-loop []
@@ -52,7 +60,8 @@
           ; group names
           ; doseq over return, >! return-val statement
           (doseq [group-name (by-group-name groups statement)]
-            (>! (group-chs group-name) statement))
+            (when (group-chs group-name)
+              (>! (group-chs group-name) statement)))
           (recur))
 
         ; No futher statements, close all the channels
@@ -77,10 +86,13 @@
   ; processors is a map from processor-name to processor function
   ; do things
   ; yield per-group output of processors in the returned channel
+  (debug "Entering tabulate")
   (let [group-chs (dispatch-group-channels statement-ch groups)
         groups (or (keys groups) [:all])]
+    (debug "Constructed group channels" group-chs)
     (async-map-map
       (fn [[processor-name processor-fn]]
+        (debug "Processing for" processor-name)
         (go
           [processor-name
            (<! (async-map-map (partial process-group processor-fn) group-chs))]))

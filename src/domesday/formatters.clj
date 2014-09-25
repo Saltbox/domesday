@@ -7,7 +7,7 @@
 
 
 (defn- format-course [row]
-  (or (:course row) ""))
+  (str (:course row)))
 
 (defn- format-attempts [row]
   (str (:attempts row 0)))
@@ -24,8 +24,8 @@
     ""))
 
 (defn- activities-row [[id details] _]
-  [(:name details)
-   id
+  [(str (:name details))
+   (str id)
    (format-course details)
    (format-attempts details)
    (format-completions details)
@@ -82,8 +82,8 @@
          [(format-actor-name actor-id agents)
           (format-actor-id actor-id)
           (format-course details)
-          (:name details)
-          activity-id
+          (str (:name details))
+          (str activity-id)
           (format-completed details)
           (format-first-date-completed details)
           (format-date-completed details)

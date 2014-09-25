@@ -1,9 +1,9 @@
 (ns domesday.cli
-  (:require [clojurewerkz.urly.core :refer [url-like]]
-            [clojure.tools.cli :refer [parse-opts]]
-            [clojure.data.json :as json]
+  (:require [clojure.tools.cli :refer [parse-opts]]
+            [cheshire.core :refer [parse-string]]
+            [domesday.protocols :refer [->xAPIEndpoint]]
+            [clojure.string :refer [join]]
             [clj-time.local :as l]
-            [clojure.string :refer [split join]]
             [clojure.java.io :refer [as-url]]))
 
 
@@ -50,7 +50,7 @@
 (defn- get-group [group-path]
   (with-open [reader (clojure.java.io/reader group-path)]
     (let [[name & agents] (line-seq reader)
-          agents (doall (map #(json/read-str % :key-fn keyword) agents))]
+          agents (doall (map #(parse-string % true) agents))]
       [name agents])))
 
 
@@ -74,14 +74,9 @@
       errors (exit 1 (error-msg errors)))
 
     ; TODO make params parsing better
-    (let [endpoint-url (-> options
-                         :endpoint
-                         url-like
-                         (.mutateQuery
-                           (join "&"
-                                 (-> (split (:query options) #"&")
-                                   (conj (str "since=" (:start options)))
-                                   (conj (str "until=" (:end options))))))
-                         str)]
-      {:options (assoc options :endpoint endpoint-url)
-       :groups (get-groups arguments)})))
+    {:options (assoc options :endpoint (->xAPIEndpoint
+                                         (:endpoint options)
+                                         (:user options)
+                                         (:password options)
+                                         (:query options)))
+     :groups (get-groups arguments)}))
