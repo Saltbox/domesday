@@ -41,12 +41,11 @@
 
 (defn get-lang
   ([lang-map]
-   (get-lang "en-US" lang-map))
+   (get-lang :en-US lang-map))
   ([lang lang-map]
    (or
      (get lang-map lang)
      (get lang-map (first (keys lang-map))))))
-
 
 
 (defn completed-activity? [statement]
