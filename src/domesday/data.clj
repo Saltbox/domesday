@@ -160,8 +160,21 @@
 (defn- update-course [activities path statement]
   (update-in activities (conj path :course)
              (fn [course-name]
-               (or course-name
-                   (some-> statement :context :contextActivities :parent (get 0) :definition :name xapi/get-lang)))))
+               (let [course-name (when (and course-name
+                                            (pos? (.length course-name)))
+                                   course-name)
+                     parent (some-> statement
+                              :context
+                              :contextActivities 
+                              :parent
+                              (get 0))]
+                 (or course-name
+                     (some-> parent
+                       :definition
+                       :name
+                       xapi/get-lang)
+                     (some-> parent
+                       :id))))))
 
 (defn- update-attempts [activities path statement]
   (update-in activities (conj path :attempts)
