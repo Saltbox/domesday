@@ -9,14 +9,8 @@
 (defn- format-course [row]
   (str (:course row)))
 
-(defn- format-attempts [row]
-  (str (:attempts row 0)))
-
-(defn- format-completions [row]
-  (str (:completions row 0)))
-
-(defn- format-successes [row]
-  (str (:successes row 0)))
+(defn- format-counter [key row]
+  (str (key row 0)))
 
 (defn- format-score [score]
   (if score
@@ -27,16 +21,17 @@
   [(str (:name details))
    (str id)
    (format-course details)
-   (format-attempts details)
-   (format-completions details)
-   (format-successes details)
+   (format-counter :attempts details)
+   (format-counter :compeltions details)
+   (format-counter :successes details)
+   (format-counter :failures details)
    (format-score (:highest-score details))
    (format-score (:lowest-score details))])
 
 
 (defn activity-summary
   [results agents]
-  (dump-csv ["Activity Name" "Activity Id" "Course" "Attempts" "Completions" "Successes" "Highest Score" "Lowest Score"]
+  (dump-csv ["Activity Name" "Activity Id" "Course" "Attempts" "Completions" "Successes" "Failures" "Highest Score" "Lowest Score"]
     (loop [rows []
            [result & more] (seq results)]
       (if result
@@ -87,17 +82,18 @@
           (format-completed details)
           (format-first-date-completed details)
           (format-date-completed details)
-          (format-successes details)
+          (format-counter :successes details)
+          (format-counter :failures details)
           (format-first-date-success details)
           (format-date-success details)
-          (format-attempts details)
+          (format-counter :attempts details)
           (format-score (:highest-score details))])
        activities))
 
 
 (defn activity-per-actor
   [results agents]
-  (dump-csv ["Actor Name" "Actor Id" "Course" "Activity Name" "Activity Id" "Completed" "First Completed Date" "Latest Completed Date" "Successes" "First Success Date" "Latest Success Date" "Attempts" "Highest Score"]
+  (dump-csv ["Actor Name" "Actor Id" "Course" "Activity Name" "Activity Id" "Completed" "First Completed Date" "Latest Completed Date" "Successes" "Failures" "First Success Date" "Latest Success Date" "Attempts" "Highest Score"]
     (loop [rows []
            [result & more] (seq results)]
       (if result
