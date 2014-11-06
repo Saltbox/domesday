@@ -196,10 +196,15 @@
   (update-in activities (conj path :successes)
              (fn [successes]
                (if (xapi/successful-activity? statement)
-                 (if successes
-                   (inc successes)
-                   1)
+                 ((fnil inc 0) successes)
                  (or successes 0)))))
+
+(defn- update-failures [activities path statement]
+  (update-in activities (conj path :failures)
+             (fn [failures]
+               (if (xapi/not-successful-activity? statement)
+                 ((fnil inc 0) failures)
+                 (or failures 0)))))
 
 (defn- update-completion-date [activities path statement]
   (update-in activities (conj path :completion-date)
@@ -281,6 +286,7 @@
        (update-attempts path statement)
        (update-completions path statement)
        (update-successes path statement)
+       (update-failures path statement)
        (update-highest-score path statement)
        (update-lowest-score path statement)))))
 
@@ -298,6 +304,7 @@
        (update-first-completion-date path statement)
        (update-completion-date path statement)
        (update-successes path statement)
+       (update-failures path statement)
        (update-first-success-date path statement)
        (update-success-date path statement)
        (update-highest-score path statement)

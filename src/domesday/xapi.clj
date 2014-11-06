@@ -59,6 +59,11 @@
     :result
     :success))
 
+(defn not-successful-activity? [statement]
+  (-> statement
+    :result
+    (:success true)
+    not))
 
 ; TODO test me
 (defn actor [statement]
