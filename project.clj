@@ -3,7 +3,8 @@
   :url "https://github.com/Saltbox/domesday"
   :license {:name "Apache License"
             :url "http://www.apache.org/licenses/LICENSE-2.0.html"}
-  :profiles {:uberjar {:aot :all}}
+  :profiles {:uberjar {:aot :all}
+             :dev {:dependencies [[org.clojure/test.check "0.5.9"]]}}
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [org.clojure/core.match "0.2.1"]

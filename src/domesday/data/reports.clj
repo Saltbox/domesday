@@ -7,10 +7,9 @@
 ; Here's a really simple report, which counts the number of statements in
 ; the group it processes.
 (def count-statements
-  {:query (fn [step]
-            (fn [result statement]
-              (step (inc result) statement)))
-   :init 0})
+  {:query q/any
+   :key (fn [_] (vector :count))
+   :init {}})
 
 (def by-activity
   {:query (comp q/description
@@ -74,5 +73,7 @@
                  (extract-annotations))
         query (xf step-fn)]
     (fn
-      ([] (:init report))
-      ([acc v] (query acc v)))))
+      ([]
+       (:init report))
+      ([acc v]
+       (query acc v)))))

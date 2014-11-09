@@ -22,7 +22,7 @@
            [nil nil] nil
            [a b] (f a b))))
 
-(defn- string-or [a b]
+(defn- string-or [^String a ^String b]
   (or (when (pos? (.length a)) a)
       (when (pos? (.length b)) b)))
 
@@ -37,6 +37,11 @@
     b))
 
 ; Queries
+(def any
+  (query {:take (fn [_] 1)
+          :as   :any
+          :by   (bnil +)}))
+
 (def highest-score
   (query {:take   xapi/get-score
           :as     :highest-score
