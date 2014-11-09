@@ -13,8 +13,16 @@ You will need https://github.com/technomancy/leiningen to build domesday.
     $ cd domesday/
     $ lein uberjar
 
+You will find the jar containing domesday and all of its dependencies inside of the `target/` directory.
+
 
 ## Usage
+
+You can run domesday using Leiningen:
+
+    $ lein run -- -A [2014-04-30T11:38:16-0700] -Z [2014-04-30T12:38:16-0700] -e [https://url.to.my.lrs.example.com/TCAPI/statements] -u [basicusername] -p [basicpassword] first_group_filename.txt second_group_filename.txt
+
+Or you can run the uberjar without needing Leiningen:
 
     $ cd target/
     $ java -jar domesday-0.1.0-SNAPSHOT-standalone.jar -A [2014-04-30T11:38:16-0700] -Z [2014-04-30T12:38:16-0700] -e [https://url.to.my.lrs.example.com/TCAPI/statements] -u [basicusername] -p [basicpassword] first_group_filename.txt second_group_filename.txt
@@ -23,7 +31,7 @@ You will need https://github.com/technomancy/leiningen to build domesday.
 Each filename passed on the command line will be treated as a new group to
 tabulate on. Domesday will use the first line of each file as the name of the
 group in the output. Domesday will use each subsequent line in each file as
-an agent definition.
+an xAPI agent definition.
 
 
 ## Options
@@ -57,9 +65,6 @@ an agent definition.
 
 ...
 
-### Any Other Sections
-### That You Think
-### Might be Useful
 
 ## License
 
