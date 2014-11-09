@@ -51,18 +51,28 @@
       results)
     acc))
 
-(defn- step-fn [key-fn results annotated-statement]
-  (update-in results (key-fn annotated-statement)
+(defn- annotate-key [key-fn]
+  (fn [step]
+    (fn [result statement]
+      (step result (assoc-in statement [:context :extensions :_result :key]
+                             (key-fn statement))))))
+
+(defn- extract-annotations []
+  (fn [step]
+    (fn [result statement]
+      (step result (get-in statement [:context :extensions :_result])))))
+
+(defn- step-fn [results annotations]
+  (update-in results (:key annotations)
              (fn [results-by-key]
                (merge-statement-annotations-to-accumulator
                  (or results-by-key {})
-                 (seq
-                   (get-in annotated-statement
-                           [:context :extensions :_result]))))))
+                 (seq (dissoc annotations :key))))))
 
 (defn make-processor [report]
-  (let [key-fn (:key report)
-        query ((:query report) (partial step-fn key-fn))]
+  (let [xf (comp (:query report) (annotate-key (:key report))
+                 (extract-annotations))
+        query (xf step-fn)]
     (fn
       ([] (:init report))
       ([acc v] (query acc v)))))
