@@ -2,6 +2,8 @@
 
 Experience API (xAPI) Tabulation Reports Script
 
+[![Build Status](https://travis-ci.org/saebyn/domesday.svg)](https://travis-ci.org/saebyn/domesday)
+
 
 ## Installation
 
