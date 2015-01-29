@@ -4,17 +4,18 @@
             [domesday.cli :refer [get-opts]]
             [domesday.formatters :as formatters]
             [domesday.data :as data]
+            [domesday.data.reports :as r]
             [domesday.protocols :refer [fetch]]
             [clojure.core.async :as async :refer [<!! chan]])
   (:gen-class))
 
-
 (timbre/refer-timbre)
 
 
-(def processors
-  {"Activities per Actor" data/by-activity-actor
-   "Activity Summary" data/by-activity})
+(def base-reports
+  {"Activities per Actor" r/by-activity-actor
+   "Activity Summary" r/by-activity})
+
 
 (def available-formatters
   {"Activity Summary" formatters/activity-summary
@@ -22,12 +23,12 @@
    :default str})
 
 
-(defn gather-results [endpoint start end groups]
+(defn gather-results [endpoint start end groups reports]
   (let [source-statements-ch (chan)
         statements-ch (async/mult source-statements-ch)
         statement-tabulate-ch (chan)
         statement-agent-ch (chan)
-        result-ch (data/tabulate statement-tabulate-ch groups processors)
+        result-ch (data/tabulate statement-tabulate-ch groups reports)
         agents-ch (data/gather-agents statement-agent-ch)]
 
     (async/tap statements-ch statement-tabulate-ch)
@@ -37,19 +38,20 @@
 
 
 (defn domesday
-  [{:keys [endpoint start end]} groups]
-    (let [[results agents]
-          (gather-results endpoint start end groups)]
-      (into {}
-        (map (fn [[formatter-name result]]
-               [formatter-name
-                (let [formatter (get available-formatters
-                                     formatter-name
-                                     (:default available-formatters))]
-                  (into {} (map (fn [[group-name group-result]]
-                                  [group-name
-                                   (formatter group-result agents)]) result)))])
-             results))))
+  ([options groups] (domesday options groups base-reports))
+  ([{:keys [endpoint start end]} groups reports]
+   (let [[results agents]
+         (gather-results endpoint start end groups reports)]
+     (into {}
+           (map (fn [[formatter-name result]]
+                  [formatter-name
+                   (let [formatter (get available-formatters
+                                        formatter-name
+                                        (:default available-formatters))]
+                     (into {} (map (fn [[group-name group-result]]
+                                     [group-name
+                                      (formatter group-result agents)]) result)))])
+                results)))))
 
 
 (defn -main
@@ -66,6 +68,6 @@
         (println "\n\n--------------------------------")
         (println formatter-name ":" group-name)
         (println "--------------------------------\n\n")
-        (println group-result))))
+        (println (apply str group-result)))))
 
   (System/exit 0))

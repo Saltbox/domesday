@@ -3,14 +3,18 @@
 
 
 (defn- dump-csv [headers rows]
-  (write-csv (vec (cons headers rows))))
+  (->> rows
+       (cons headers)
+       (map vec)
+       (map vector)
+       (map write-csv)))
 
 
 (defn- format-course [row]
   (str (:course row)))
 
-(defn- format-counter [key row]
-  (str (key row 0)))
+(defn- format-counter [k row]
+  (str (k row 0)))
 
 (defn- format-score [score]
   (if score
