@@ -1,4 +1,4 @@
-(defproject domesday "0.1.3-SNAPSHOT"
+(defproject domesday "0.1.4-SNAPSHOT"
   :description "Experience API (xAPI) Tabulation Reports Script"
   :url "https://github.com/Saltbox/domesday"
   :license {:name "Apache License"
