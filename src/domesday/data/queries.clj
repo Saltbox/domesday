@@ -110,3 +110,15 @@
                                   (:timestamp statement)))
           :as :first-success-date
           :by (bnil take-lesser)}))
+
+(def failure-date
+  (query {:take (fn [statement] (when (xapi/not-successful-activity? statement)
+                                  (:timestamp statement)))
+          :as :failure-date
+          :by (bnil take-greater)}))
+
+(def first-failure-date
+  (query {:take (fn [statement] (when (xapi/not-successful-activity? statement)
+                                  (:timestamp statement)))
+          :as :first-failure-date
+          :by (bnil take-lesser)}))

@@ -74,6 +74,12 @@
 (defn- format-first-date-success [row]
   (or (:first-success-date row) ""))
 
+(defn- format-date-failure [row]
+  (or (:failure-date row) ""))
+
+(defn- format-first-date-failure [row]
+  (or (:first-failure-date row) ""))
+
 
 (defn- actor-activities-rows
   [[actor-id activities] agents]
@@ -90,6 +96,8 @@
           (format-counter :failures details)
           (format-first-date-success details)
           (format-date-success details)
+          (format-first-date-failure details)
+          (format-date-failure details)
           (format-counter :attempts details)
           (format-score (:highest-score details))])
        activities))
@@ -97,7 +105,7 @@
 
 (defn activity-per-actor
   [results agents]
-  (dump-csv ["Actor Name" "Actor Id" "Course" "Activity Name" "Activity Id" "Completed" "First Completed Date" "Latest Completed Date" "Successes" "Failures" "First Success Date" "Latest Success Date" "Attempts" "Highest Score"]
+  (dump-csv ["Actor Name" "Actor Id" "Course" "Activity Name" "Activity Id" "Completed" "First Completed Date" "Latest Completed Date" "Successes" "Failures" "First Success Date" "Latest Success Date" "First Failure Date" "Latest Failure Date" "Attempts" "Highest Score"]
     (loop [rows []
            [result & more] (seq results)]
       (if result

@@ -34,6 +34,8 @@
                 q/failures
                 q/first-success-date
                 q/success-date
+                q/first-failure-date
+                q/failure-date
                 q/highest-score
                 q/lowest-score)
    :key #(vector (xapi/actor %1) (-> %1 :object :id))
