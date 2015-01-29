@@ -3,7 +3,11 @@
 
 
 (defn- dump-csv [headers rows]
-  (write-csv (vec (cons headers rows))))
+  (->> rows
+       (cons headers)
+       (map vec)
+       (map vector)
+       (map write-csv)))
 
 
 (defn- format-course [row]

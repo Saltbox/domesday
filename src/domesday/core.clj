@@ -68,6 +68,6 @@
         (println "\n\n--------------------------------")
         (println formatter-name ":" group-name)
         (println "--------------------------------\n\n")
-        (println group-result))))
+        (println (apply str group-result)))))
 
   (System/exit 0))
